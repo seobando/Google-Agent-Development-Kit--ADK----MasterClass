@@ -24,7 +24,7 @@ from dotenv import load_dotenv
 
 from agent_framework import ChatCompletionAgent, AgentThread
 from agent_framework.threads import ThreadStore, DatabaseThreadStore
-from agent_framework.models import AzureOpenAIChatCompletionClient
+from agent_framework.models import OpenAIChatCompletionClient
 from agent_framework.tools import tool
 from agent_framework.context import ContextProvider
 
@@ -447,8 +447,8 @@ def create_recipe_agent() -> ChatCompletionAgent:
     - Tools decorated with @tool
     - system_prompt instead of instruction
     """
-    model_client = AzureOpenAIChatCompletionClient(
-        deployment="gpt-4o",
+    model_client = OpenAIChatCompletionClient(
+        model="gpt-4o",
     )
     
     return ChatCompletionAgent(

@@ -11,15 +11,21 @@ Installation: pip install agent-framework
 Reference: https://learn.microsoft.com/en-us/agent-framework/overview/agent-framework-overview
 """
 
+import asyncio
 from datetime import datetime
 from typing import Any, Callable, Awaitable
 
-from agent_framework import ChatCompletionAgent, AgentThread
-from agent_framework.middleware import Middleware, MiddlewareContext
-from agent_framework.models import AzureOpenAIChatCompletionClient
+from agent_framework import ChatAgent, AgentThread, AgentMiddleware, AgentRunContext
+from agent_framework.openai import OpenAIChatClient
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
-class TimingMiddleware(Middleware):
+async def timing_middleware(
+    context: AgentRunContext,
+    next_handler: Callable[[AgentRunContext], Awaitable[None]]
+) -> None:
     """
     Middleware that monitors agent interactions - equivalent to Google ADK callbacks.
     
@@ -32,52 +38,32 @@ class TimingMiddleware(Middleware):
     - after_agent_callback: Called AFTER processing
     
     In Microsoft Agent Framework:
-    - Middleware.invoke(): Wraps the agent call with before/after logic
+    - Middleware function wraps the agent call with before/after logic
     """
+    # ═══════════════════════════════════════════════════════════════
+    # BEFORE AGENT CALLBACK (equivalent to Google ADK before_agent_callback)
+    # Great for: logging, authentication, input validation
+    # ═══════════════════════════════════════════════════════════════
+    print(f"🚀 Starting to process request...")
+    print(f"⏰ Time: {datetime.now().strftime('%H:%M:%S')}")
     
-    def __init__(self):
-        self.state: dict[str, Any] = {}
+    start_time = datetime.now()
     
-    async def invoke(
-        self,
-        context: MiddlewareContext,
-        next_handler: Callable[[MiddlewareContext], Awaitable[Any]]
-    ) -> Any:
-        """
-        Called when the agent processes a message.
-        Code before next_handler() = before callback
-        Code after next_handler() = after callback
-        """
-        # ═══════════════════════════════════════════════════════════════
-        # BEFORE AGENT CALLBACK (equivalent to Google ADK before_agent_callback)
-        # Great for: logging, authentication, input validation
-        # ═══════════════════════════════════════════════════════════════
-        user_content = context.input_message.content if context.input_message else ""
-        print(f"🚀 Starting to process: '{user_content}'")
-        print(f"⏰ Time: {datetime.now().strftime('%H:%M:%S')}")
-        
-        # Store start time in state (equivalent to callback_context.state)
-        self.state["start_time"] = datetime.now()
-        
-        # ═══════════════════════════════════════════════════════════════
-        # AGENT PROCESSING - Call the next handler (the actual agent)
-        # ═══════════════════════════════════════════════════════════════
-        result = await next_handler(context)
-        
-        # ═══════════════════════════════════════════════════════════════
-        # AFTER AGENT CALLBACK (equivalent to Google ADK after_agent_callback)
-        # Great for: logging responses, analytics, post-processing
-        # ═══════════════════════════════════════════════════════════════
-        if "start_time" in self.state:
-            duration = datetime.now() - self.state["start_time"]
-            print(f"⚡ Response generated in {duration.total_seconds():.1f} seconds")
-        
-        print(f"✅ Agent responded. State: '{self.state}'...")
-        
-        return result  # Don't modify the response
+    # ═══════════════════════════════════════════════════════════════
+    # AGENT PROCESSING - Call the next handler (the actual agent)
+    # ═══════════════════════════════════════════════════════════════
+    await next_handler(context)
+    
+    # ═══════════════════════════════════════════════════════════════
+    # AFTER AGENT CALLBACK (equivalent to Google ADK after_agent_callback)
+    # Great for: logging responses, analytics, post-processing
+    # ═══════════════════════════════════════════════════════════════
+    duration = datetime.now() - start_time
+    print(f"⚡ Response generated in {duration.total_seconds():.1f} seconds")
+    print(f"✅ Agent responded successfully!")
 
 
-def create_math_tutor_agent() -> ChatCompletionAgent:
+def create_math_tutor_agent() -> ChatAgent:
     """
     Create a math tutor agent with middleware callbacks.
     
@@ -85,36 +71,30 @@ def create_math_tutor_agent() -> ChatCompletionAgent:
     ┌─────────────────────────┬─────────────────────────────────────┐
     │ Google ADK              │ Microsoft Agent Framework           │
     ├─────────────────────────┼─────────────────────────────────────┤
-    │ LlmAgent                │ ChatCompletionAgent                 │
-    │ before_agent_callback   │ Middleware.invoke() - before next() │
-    │ after_agent_callback    │ Middleware.invoke() - after next()  │
-    │ CallbackContext.state   │ Middleware state / AgentThread      │
-    │ model="gemini-2.0-flash"│ AzureOpenAIChatCompletionClient     │
-    │ instruction             │ system_prompt                       │
+    │ LlmAgent                │ ChatAgent                           │
+    │ before_agent_callback   │ Middleware - before next_handler()  │
+    │ after_agent_callback    │ Middleware - after next_handler()   │
+    │ CallbackContext.state   │ AgentRunContext / AgentThread       │
+    │ model="gemini-2.0-flash"│ OpenAIChatClient(model_id="gpt-4o") │
+    │ instruction             │ instructions                        │
     └─────────────────────────┴─────────────────────────────────────┘
     """
     
     # Create the model client
-    # Azure OpenAI credentials loaded from environment variables:
-    # AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_API_KEY, AZURE_OPENAI_DEPLOYMENT
-    model_client = AzureOpenAIChatCompletionClient(
-        deployment="gpt-4o",  # Your Azure OpenAI deployment name
-    )
-    
-    # Create the timing middleware (our callback equivalent)
-    timing_middleware = TimingMiddleware()
+    # OpenAI credentials loaded from environment variable: OPENAI_API_KEY
+    chat_client = OpenAIChatClient(model_id="gpt-4o")
     
     # Create the agent with middleware
-    agent = ChatCompletionAgent(
+    agent = ChatAgent(
+        chat_client=chat_client,
         name="math_tutor",
         description="A friendly math tutor for students",
-        system_prompt="""
+        instructions="""
         You are a helpful math tutor. 
         - Give clear, step-by-step explanations
         - Be encouraging and patient
         - Keep answers concise but complete
         """,
-        model_client=model_client,
         middleware=[timing_middleware],  # Attach middleware (callbacks)
     )
     
@@ -142,20 +122,63 @@ async def main():
     print(f"\n📝 User: {user_message}\n")
     print("=" * 50)
     
-    # Invoke the agent - middleware will be called automatically
+    # Run the agent - middleware will be called automatically
     # The timing middleware will:
     # 1. Log "Starting to process" (before callback)
     # 2. Let the agent generate response
     # 3. Log response time (after callback)
-    response = await agent.invoke(
-        input_message=user_message,
+    response = await agent.run(
+        messages=user_message,
         thread=thread,
     )
     
     print("=" * 50)
-    print(f"\n🤖 Math Tutor: {response.content}")
+    print(f"\n🤖 Math Tutor: {response.text}")
+
+
+async def interactive():
+    """Interactive chat loop - like Google ADK CLI mode."""
+    
+    agent = create_math_tutor_agent()
+    thread = AgentThread()
+    
+    print("\n" + "=" * 50)
+    print("🎓 MATH TUTOR - Interactive Mode")
+    print("=" * 50)
+    print("Type your math questions, or 'quit' to exit.\n")
+    
+    while True:
+        try:
+            user_input = input("📝 You: ").strip()
+            
+            if not user_input:
+                continue
+            
+            if user_input.lower() in ['quit', 'exit', 'q']:
+                print("\n👋 Goodbye! Keep learning!")
+                break
+            
+            print("\n" + "-" * 40)
+            response = await agent.run(messages=user_input, thread=thread)
+            print("-" * 40)
+            print(f"\n🤖 Math Tutor: {response.text}\n")
+            
+        except KeyboardInterrupt:
+            print("\n\n👋 Goodbye!")
+            break
 
 
 if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main())
+    import sys
+    
+    if len(sys.argv) > 1 and sys.argv[1] == "web":
+        # Run web UI: python agent.py web
+        from agent_framework.devui import serve
+        print("🚀 Starting Web UI at http://127.0.0.1:8080")
+        serve(entities=[root_agent], port=8080, auto_open=True)
+    elif len(sys.argv) > 1 and sys.argv[1] == "once":
+        # Run single question: python agent.py once
+        asyncio.run(main())
+    else:
+        # Interactive CLI mode (default)
+        asyncio.run(interactive())

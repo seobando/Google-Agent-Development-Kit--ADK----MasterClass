@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from agent_framework import ChatCompletionAgent, AgentThread
 from agent_framework.middleware import Middleware, MiddlewareContext
 from agent_framework.models import (
-    AzureOpenAIChatCompletionClient,
+    OpenAIChatCompletionClient,
     ChatCompletionRequest,
     ChatCompletionResponse,
     ChatMessage,
@@ -182,8 +182,8 @@ def create_filtered_chatbot() -> ChatCompletionAgent:
     """
     
     # Create the model client
-    model_client = AzureOpenAIChatCompletionClient(
-        deployment="gpt-4o",  # Your Azure OpenAI deployment name
+    model_client = OpenAIChatCompletionClient(
+        model="gpt-4o",  # OpenAI model name
     )
     
     # Create the model callback middleware

@@ -11,11 +11,13 @@ uv sync
 
 ## 🔐 Environment Variables
 
+Create a `.env` file in the `mfa` folder with:
+
 ```bash
-AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
-AZURE_OPENAI_API_KEY=your-api-key
-AZURE_OPENAI_DEPLOYMENT=gpt-4o
+OPENAI_API_KEY=sk-your-openai-api-key
 ```
+
+> **Note**: These examples use regular OpenAI API. If you prefer Azure OpenAI, you can modify the imports to use `AzureOpenAIChatCompletionClient` instead.
 
 ## 📁 Examples
 

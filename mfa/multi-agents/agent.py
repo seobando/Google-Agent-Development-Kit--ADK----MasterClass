@@ -17,12 +17,12 @@ from typing import Any, Callable
 
 from agent_framework import ChatCompletionAgent, AgentThread
 from agent_framework.workflows import Workflow, SequentialWorkflow
-from agent_framework.models import AzureOpenAIChatCompletionClient
+from agent_framework.models import OpenAIChatCompletionClient
 from agent_framework.tools import tool, WebSearchTool
 
 
 # Model configuration
-AGENT_MODEL = "gpt-4o"  # Azure OpenAI deployment name
+AGENT_MODEL = "gpt-4o"  # OpenAI model name
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -103,10 +103,10 @@ def get_current_time(city: str) -> dict:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def create_model_client():
-    """Create the Azure OpenAI model client."""
-    return AzureOpenAIChatCompletionClient(
-        deployment=AGENT_MODEL,
-        # Credentials from environment: AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_API_KEY
+    """Create the OpenAI model client."""
+    return OpenAIChatCompletionClient(
+        model=AGENT_MODEL,
+        # Credentials from environment: OPENAI_API_KEY
     )
 
 

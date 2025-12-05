@@ -17,7 +17,7 @@ from dataclasses import dataclass
 
 from agent_framework import ChatCompletionAgent, AgentThread
 from agent_framework.workflows import ParallelWorkflow
-from agent_framework.models import AzureOpenAIChatCompletionClient
+from agent_framework.models import OpenAIChatCompletionClient
 from agent_framework.tools import WebSearchTool
 
 
@@ -26,10 +26,10 @@ from agent_framework.tools import WebSearchTool
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def create_model_client():
-    """Create the Azure OpenAI model client."""
-    return AzureOpenAIChatCompletionClient(
-        deployment="gpt-4o",  # Your Azure OpenAI deployment
-        # Credentials from environment: AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_API_KEY
+    """Create the OpenAI model client."""
+    return OpenAIChatCompletionClient(
+        model="gpt-4o",  # OpenAI model name
+        # Credentials from environment: OPENAI_API_KEY
     )
 
 

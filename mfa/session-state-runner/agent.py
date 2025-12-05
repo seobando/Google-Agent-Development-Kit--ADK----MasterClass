@@ -21,7 +21,7 @@ from pydantic import BaseModel, Field
 
 from agent_framework import ChatCompletionAgent, AgentThread
 from agent_framework.threads import InMemoryThreadStore
-from agent_framework.models import AzureOpenAIChatCompletionClient
+from agent_framework.models import OpenAIChatCompletionClient
 from agent_framework.output import StructuredOutputParser
 
 
@@ -183,8 +183,8 @@ When responding, also output a JSON with the customer's current state:
 }}
 """
     
-    model_client = AzureOpenAIChatCompletionClient(
-        deployment="gpt-4o",
+    model_client = OpenAIChatCompletionClient(
+        model="gpt-4o",
     )
     
     return ChatCompletionAgent(
